@@ -1,0 +1,160 @@
+extensions:
+  zpages:
+  healthcheckv2:
+    use_v2: true
+    component_health:
+      include_permanent_errors: false
+      include_recoverable_errors: true
+      recovery_duration: 5m
+    http:
+      endpoint: ${env:MY_POD_IP}:13133
+      status:
+        enabled: true
+        path: "/health/status"
+      config:
+        enabled: true
+        path: "/health/config"
+
+receivers:
+  nrproprietaryreceiver:
+    nr_host: "collector.newrelic.com"
+    logging:
+      enable: false
+    logfilter:
+      enabled: false
+      flush_interval: 5s
+      pattern: .*
+      buffer_size: 262144
+    enable_default_host: false
+    enable_runtime_metrics: true
+    proxy: false
+    endpoints:
+      event_api_endpoint: "[https://insights-collector.newrelic.com](https://insights-collector.newrelic.com)"
+      infra_event_api_endpoint: "[https://infra-api.newrelic.com](https://infra-api.newrelic.com)"
+      log_api_endpoint: "[https://log-api.newrelic.com](https://log-api.newrelic.com)"
+      metrics_endpoint: "[https://metric-api.newrelic.com](https://metric-api.newrelic.com)"
+      traces_endpoint: "[https://trace-api.newrelic.com](https://trace-api.newrelic.com)"
+    server:
+      endpoint: ${env:MY_POD_IP}:80
+    client:
+      compression: gzip
+      timeout: 10s
+  otlp:
+    protocols:
+      http:
+        endpoint: ${env:MY_POD_IP}:4318
+      grpc:
+        endpoint: ${env:MY_POD_IP}:4317
+  prometheus/usage:
+    config:
+      scrape_configs:
+        - job_name: 'pipeline-gateway-usage'
+          scrape_interval: 60s
+          static_configs:
+            - targets: [ '0.0.0.0:8888' ]
+              labels:
+                version: 1.2.0
+                podName: '${env:MY_POD_NAME}'
+                clusterName: controldemo
+                serviceName: 'pipeline-control-gateway'
+          metric_relabel_configs:
+            - source_labels: [ __name__ ]
+              regex: '.*bytes_received.*'
+              action: keep
+               prometheus/monitoring:
+    config:
+      scrape_configs:
+        - job_name: 'pipeline-gateway-monitoring'
+          scrape_interval: 15s
+          static_configs:
+            - targets: [ '0.0.0.0:8888' ]
+              labels:
+                version: 1.2.0
+                podName: '${env:MY_POD_NAME}'
+                clusterName: controldemo
+                serviceName: 'pipeline-control-gateway'
+          metric_relabel_configs:
+            - action: labeldrop
+              regex: 'service_version|service_name|service_instance_id'
+            - source_labels: [ __name__ ]
+              regex: 'godebug_.*'
+              action: drop
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 100
+  nrprocessor:
+    queue:
+      enabled: true
+      queue_size: 100
+    queries:
+  cumulativetodelta:
+
+exporters:
+  otlp:
+    endpoint: "otlp.nr-data.net:443"
+    headers:
+      api-key: ${env:NEW_RELIC_LICENSE_KEY}
+  otlphttp:
+    endpoint: "[https://otlp.nr-data.net](https://otlp.nr-data.net)"
+    headers:
+      api-key: ${env:NEW_RELIC_LICENSE_KEY}
+  nrcollectorexporter:
+    endpoint: "[https://log-api.newrelic.com](https://log-api.newrelic.com)"
+    retry_on_failure:
+      enabled: true
+      initial_interval: 100ms
+      max_interval: 500ms
+      max_elapsed_time: 5s
+    timeout: 10s
+    sending_queue:
+      enabled: false
+    compression: gzip
+    encoding: json
+    nr_license_key: ${env:NEW_RELIC_LICENSE_KEY}
+  usageexporter:
+    endpoint: [https://collector.newrelic.com/external-usage](https://collector.newrelic.com/external-usage)
+    headers:
+      api-key: ${env:NEW_RELIC_LICENSE_KEY}
+
+service:
+  extensions: [ healthcheckv2 ]
+
+  pipelines:
+    logs/nr:
+      receivers: [nrproprietaryreceiver]
+      processors: [nrprocessor]
+      exporters: [nrcollectorexporter]
+    logs/otlp:
+      receivers: [ otlp ]
+      processors: [ nrprocessor ]
+      exporters: [ otlp ]
+    metrics/nr:
+      receivers: [nrproprietaryreceiver]
+      processors: [nrprocessor]
+      exporters: [nrcollectorexter]
+    metrics/otlp:
+      receivers: [otlp]
+      processors: [ nrprocessor]
+      exporters: [otlp]
+    traces/otlp:
+      receivers: [otlp]
+      processors: [nrprocessor]
+      exporters: [ otlp ]
+    traces/nr:
+      receivers: [ nrproprietaryreceiver ]
+      processors: [ nrprocessor ]
+      exporters: [ nrcollectorexporter ]
+    metrics/usage:
+      receivers: [prometheus/usage]
+      processors: [cumulativetodelta]
+      exporters: [usageexporter]
+    metrics/monitoring:
+      receivers: [prometheus/monitoring]
+      processors: []
+      exporters: [otlphttp]
+
+  telemetry:
+    metrics:
+      level: detailed
