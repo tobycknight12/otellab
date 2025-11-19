@@ -1,6 +1,6 @@
 # **New Relic Open Telemetry Lab**
 
-# **Lab 1: Local K8s Observability with Docker, Minikube & New Relic**
+# **Lab 1: New Relic Control Gateway**
 
 This lab provides a complete, step-by-step guide to building a local Kubernetes development environment on an Ubuntu machine. You will install all the necessary tools to run and observe a local cluster:
 
