@@ -378,15 +378,17 @@ This fixes the common issue where OTel data appears as a generic "OpenTelemetry"
 This step is the same as before.
 
 1. Create a new directory for your lab (e.g., `otel-java-lab`) and `cd` into it.  
-2. Create the `SimpleJavaApp.java` file (provided).  
+2. Create the `SimpleSpring.java` file (provided).  
 3. Create the `Dockerfile` file (provided).
+4. Create the `pom.xml` file (provided).
 
 Your directory should look like this:
 
 ```
 otel-java-lab/
-├── SimpleJavaApp.java
+├── SimpleSpring.java
 └── Dockerfile
+└── pom.xml
 ```
 
 ## **Part 2: Download the OTel Agent** 
@@ -402,9 +404,10 @@ Your directory should now have all three files:
 
 ```
 otel-java-lab/
-├── SimpleJavaApp.java
+├── SimpleSpring.java
 ├── Dockerfile
 ├── opentelemetry-javaagent.jar
+├── pom.xml
 
 ```
 
@@ -421,7 +424,7 @@ otel-java-lab/
 2. **Run the Container with OTel \+ New Relic Extensions:** **Remember to replace `YOUR_NEW_RELIC_LICENSE_KEY` with your actual key.**
 
 ```
-docker run -d -p 8080:8080   --name otel-java-app   -v "$(pwd)/opentelemetry-javaagent.jar:/app/opentelemetry-javaagent.jar"   -e JAVA_TOOL_OPTIONS="-javaagent:/app/opentelemetry-javaagent.jar"   -e OTEL_RESOURCE_ATTRIBUTES="service.name=simple-java-app"   -e OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"   -e OTEL_METRICS_EXPORTER="otlp"   -e OTEL_TRACES_EXPORTER="otlp"   -e OTEL_LOGS_EXPORTER="none"     -e OTEL_EXPORTER_OTLP_ENDPOINT="https://otlp.nr-data.net:443"   -e OTEL_EXPORTER_OTLP_HEADERS="api-key=YOUR-API-KEY"     otel-java-lab
+docker run -d -p 8080:8080   --name otel-java-app   -v "$(pwd)/opentelemetry-javaagent.jar:/app/opentelemetry-javaagent.jar"   -e JAVA_TOOL_OPTIONS="-javaagent:/app/opentelemetry-javaagent.jar"   -e OTEL_RESOURCE_ATTRIBUTES="service.name=simple-java-app"   -e OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"   -e OTEL_METRICS_EXPORTER="otlp"   -e OTEL_TRACES_EXPORTER="otlp"   -e OTEL_LOGS_EXPORTER="none"     -e OTEL_EXPORTER_OTLP_ENDPOINT="https://otlp.nr-data.net:443"   -e OTEL_EXPORTER_OTLP_HEADERS="api-key=NEW_RELIC_LICENSE_KEY"     otel-java-lab
 
 ```
 
